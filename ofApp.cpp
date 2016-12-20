@@ -39,6 +39,13 @@ void ofApp::setup(){
 	bezManager.loadSettings();
 
 	currentMode = MODE_DEPTH_SETTING;
+
+	// open an outgoing connection to HOST:PORT
+	sender.setup(HOST, PORT);
+
+	// openCV
+	cvShadowImage.allocate(SHADOW_WIDTH, SHADOW_HEIGHT);
+	tmpImage.allocate(SHADOW_WIDTH, SHADOW_HEIGHT, OF_IMAGE_GRAYSCALE);
 }
 
 //--------------------------------------------------------------
@@ -166,6 +173,8 @@ void ofApp::draw(){
 
 	drawInfo(0, 0, text);
 	gui.draw();
+
+	//cvShadowImage.draw(0, 0);
 }
 
 //--------------------------------------------------------------
@@ -292,6 +301,8 @@ void ofApp::setup_gui() {
 	//params_state.add(offset_x.set("offset x", 0.0, -0.1, 0.1));
 	//params_state.add(offset_y.set("offset y", 0.0, -0.1, 0.1));
 	//params_state.add(offset_r.set("offset radius", 0.0, -0.1, 0.1));
+	params_state.add(minAreaRadius.set("min blob radius", 100, 0, 100000));
+	params_state.add(maxAreaRadius.set("max blob radius", 500, 1, 300000));
 
 	params.add(params_state);
 	params.add(imageProcessing.params);
@@ -403,8 +414,13 @@ void ofApp::update_warp_fbo()
 	ofBackground(0);
 	ofSetColor(255);
 	ofFill();
-	//imageProcessing.show_debug_image(0, 0);
-	imageProcessing.show_front_image(0, 0);
+	if (currentMode == MODE_WARP_SETTING)
+	{
+		imageProcessing.show_debug_image(0, 0);
+	}
+	else {
+		imageProcessing.show_front_image(0, 0);
+	}
 	ofPopStyle();
 	warpFbo.end();
 }
@@ -419,9 +435,40 @@ void ofApp::update_shadow_fbo()
 	bezManager.draw();
 	ofPopMatrix();
 
-	// for debug
-	// todo: delete this line
-	//ofDrawCircle(SHADOW_WIDTH / 2, SHADOW_HEIGHT / 2, 100);
-
 	shadowFbo.end();
+
+	shadowFbo.readToPixels(shadowPixels);
+	tmpImage.setFromPixels(shadowPixels);
+	tmpImage.setImageType(OF_IMAGE_GRAYSCALE);
+	cvShadowImage.setFromPixels(tmpImage.getPixels());
+	contourFinder.findContours(cvShadowImage, minAreaRadius, maxAreaRadius / 3, 10, false);
+
+	for (int i = 0; i < contourFinder.nBlobs; i++) {
+		cout << contourFinder.blobs[i].area << endl;
+		//contourFinder.blobs[i].draw(360, 540);
+
+		//// draw over the centroid if the blob is a hole
+		//ofSetColor(255);
+		//if (contourFinder.blobs[i].hole) {
+		//	ofDrawBitmapString("hole",
+		//		contourFinder.blobs[i].boundingRect.getCenter().x + 360,
+		//		contourFinder.blobs[i].boundingRect.getCenter().y + 540);
+		//}
+
+		;
+		ofxOscMessage m;
+		m.setAddress("/test");
+		m.addFloatArg(contourFinder.blobs[i].centroid.x / static_cast<float>(ofGetWindowWidth()));
+		m.addFloatArg(contourFinder.blobs[i].centroid.y / static_cast<float>(ofGetWindowHeight()));
+		m.addFloatArg(contourFinder.blobs[i].boundingRect.width / static_cast<float>(ofGetWindowWidth()));
+		m.addFloatArg(contourFinder.blobs[i].boundingRect.height / static_cast<float>(ofGetWindowHeight()));
+		sender.sendMessage(m, false);
+	}
+
+}
+
+//--------------------------------------------------------------
+void ofApp::find_shadow_eria()
+{
+
 }

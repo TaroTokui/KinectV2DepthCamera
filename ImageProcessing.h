@@ -107,7 +107,7 @@ private:
 	ofParameter<int> sensing_range;
 	ofParameter<int> touch_range;
 
-	//// tracking object params
+	//// tracking object params0
 	//ofParameter<int> minAreaRadius;
 	//ofParameter<int> maxAreaRadius;
 

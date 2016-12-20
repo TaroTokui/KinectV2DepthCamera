@@ -4,10 +4,14 @@
 #include "ofxGui.h"
 #include "ofxBezierWarpManager.h"
 #include "ofxSpout2Sender.h"
+#include "ofxOsc.h"
 
 #include "KinectV2DepthCamera.h"
 #include "ImageProcessing.h"
 #include "MaskGenerator.h"
+
+#define HOST "localhost"
+#define PORT 12345
 
 constexpr int WINDOW_OFFSET_X = 20;
 constexpr int WINDOW_OFFSET_Y = 20;
@@ -61,6 +65,8 @@ private:
 	ofParameter<bool> bShowIrImage;
 	ofParameter<int> bgAddDuration;
 	ofParameter<bool> bHolizontalMirror;
+	ofParameter<int> minAreaRadius;
+	ofParameter<int> maxAreaRadius;
 	bool bShowGui;
 
 	void setup_gui();
@@ -75,12 +81,21 @@ private:
 	void toggle_mode();
 	APP_MODE currentMode;
 
+	// cv params
+	ofxCvGrayscaleImage 	cvShadowImage;
+	ofxCvContourFinder 	contourFinder;
+	ofPixels shadowPixels;
+	ofImage tmpImage;
+
 	// functions
 	void update_kinect();
 	void check_bg_mode();
 	void calc_front_image();
 	void update_warp_fbo();
 	void update_shadow_fbo();
+	void find_shadow_eria();
 
 	ofxSpout2::Sender spout;
+
+	ofxOscSender sender;
 };
